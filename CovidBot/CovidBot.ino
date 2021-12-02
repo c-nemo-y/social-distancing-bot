@@ -51,19 +51,28 @@ void setup() {
 }
 
 const int speedFactor = 0.8;
+  int safe_dist = 30;
 
 void loop() {
   // put your main code here, to run repeatedly:
   //  moveForward();
-  Serial.println("top");
   int left_distance = leftUltra();
   int right_distance = rightUltra();
   int front_distance = frontUltra();
-  Serial.println(front_distance);
-  Serial.println(right_distance);
-  Serial.println(left_distance);
+  if(left_distance < safe_dist){
+    Serial.println("left blocked");
+    Serial.println(left_distance);
+    }
+    if(right_distance < safe_dist){
+    Serial.println("right blocked");
+    Serial.println(right_distance);
+    }
+    if(front_distance < safe_dist){
+    Serial.println("front blocked");
+    Serial.println(front_distance);
+    }
+ 
 
-  int safe_dist = 40;
   
   if (front_distance >= safe_dist && left_distance >= safe_dist && right_distance >= safe_dist) {
     moveForward();
@@ -75,13 +84,13 @@ void loop() {
 //    moveBack();
 //  }
   if (front_distance < safe_dist) {
-      digitalWrite(left1, HIGH);
-      digitalWrite(left2, HIGH);
-      digitalWrite(right1, HIGH);
-      digitalWrite(right2, HIGH);
-      delay(700);
+//       digitalWrite(left1, LOW);
+//  digitalWrite(left2, LOW);
+//  digitalWrite(right1, LOW);
+//  digitalWrite(right2, LOW);
+//      delay(700);
     moveBack();
-    delay(2000*speedFactor);
+    delay(5000*speedFactor);
     if(left_distance > right_distance){
       moveLeft();
       } else {
@@ -103,7 +112,6 @@ void loop() {
 //    Serial.println(right_distance);
     moveLeft();
   }
-  Serial.println("4");
 }
 
 void moveRight() {
@@ -136,7 +144,7 @@ void moveForward() {
 
 
 void moveBack() {
-
+  Serial.println("moving back");
   analogWrite(leftEnable, max_speed);
   analogWrite(rightEnable, reduced);
   digitalWrite(left1, LOW);
