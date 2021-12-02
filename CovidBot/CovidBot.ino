@@ -7,18 +7,25 @@ const int motorPin3  = 9; // Pin  7 of L293
 const int motorPin4  = 10;  // Pin  2 of L293
 
 //Left Ultrasonic Sensor
-#define LeftEchoPin 52 // attach pin D2 Arduino to pin Echo of HC-SR04
-#define LeftTrigPin 53 //attach pin D3 Arduino to pin Trig of HC-SR04
+#define LeftEchoPin 52 
+#define LeftTrigPin 53 
 
 //Right Ultrasonic Sensor
-#define RightEchoPin 11 // attach pin D2 Arduino to pin Echo of HC-SR04
-#define RightTrigPin 12 //attach pin D3 Arduino to pin Trig of HC-SR04
+#define RightEchoPin 11 
+#define RightTrigPin 12 
+
+//Front Ultrasonic Sensor
+#define FrontEchoPin 3
+#define FrontTrigPin 4
 
 long left_duration; // variable for the left duration of sound wave travel
 int left_old_distance; // variable for the left distance measurement
 
 long right_duration; // variable for the right duration of sound wave travel
 int right_old_distance; // variable for the right distance measurement
+
+long front_duration; // variable for the front duration of sound wave travel
+int front_old_distance; // variable for the front distance measurement
 void setup() {
   // put your setup code here, to run once:
   pinMode(motorPin1, OUTPUT);
@@ -29,6 +36,8 @@ void setup() {
   pinMode(LeftEchoPin, INPUT); // Sets the echoPin as an INPUT
   pinMode(RightTrigPin, OUTPUT); // Sets the trigPin as an OUTPUT
   pinMode(RightEchoPin, INPUT); // Sets the echoPin as an INPUT
+  pinMode(FrontTrigPin, OUTPUT); // Sets the trigPin as an OUTPUT
+  pinMode(FrontEchoPin, INPUT); // Sets the echoPin as an INPUT
   Serial.begin(9600);
 
 }
@@ -38,7 +47,17 @@ void loop() {
   //  moveForward();
   int left_distance = leftUltra();
   int right_distance = rightUltra();
-
+  int front_distance = frontUltra();
+  
+  if (front_distance >= 25 && left_distance >= 25 && right_distance >= 25) {
+    moveForward();
+  }
+  if (left_distance < 25 && right_distance < 25 && front_distance < 25) {
+    moveBack();
+  }
+  if (left_distance < 25 && right_distance < 25) {
+    moveBack();
+  }
   if (left_distance < 25) {
     Serial.println("here1");
     Serial.println(left_distance);
@@ -49,10 +68,6 @@ void loop() {
     Serial.println(right_distance);
     moveLeft();
   }
-  //  if (left_distance < 25 && right_distance < 25) {
-  //    Serial.println("stuck");
-  //    moveBack();
-  //  }
 }
 
 void moveRight() {
@@ -114,4 +129,20 @@ int rightUltra() {
   right_old_distance = right_duration * 0.034 / 2; // Speed of sound wave divided by 2 (go and back)
   //  Serial.println(right_)
   return right_old_distance;
+}
+
+int frontUltra() {
+
+  digitalWrite(FrontTrigPin, LOW);
+  delayMicroseconds(2);
+  // Sets the RightTrigPin HIGH (ACTIVE) for 10 microseconds
+  digitalWrite(FrontTrigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(FrontTrigPin, LOW);
+  // Reads the RightEchoPin, returns the sound wave travel time in microseconds
+  front_duration = pulseIn(FrontEchoPin, HIGH);
+  // Calculating the distance
+  front_old_distance = right_duration * 0.034 / 2; // Speed of sound wave divided by 2 (go and back)
+  //  Serial.println(right_)
+  return front_old_distance;
 }
