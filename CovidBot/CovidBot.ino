@@ -162,7 +162,7 @@ void driveMain(){
         } else {
         moveRight(); 
         }
-      delay(500);
+      delay(200);
       int count = 0;
       boolean flag = true;
       while (frontUltra() < safe_dist - 10 && flag) {
