@@ -1,12 +1,18 @@
 //L293D
 //Motor A
-const int left1  = 40;  // Pin 14 of L293
-const int left2  = 41;  // Pin 10 of L293
+
+const int left1  = 38;  // Pin 14 of L293
+const int left2  = 39;  // Pin 10 of L293
 #define leftEnable A14
 
 //Motor B
 const int right1  = 31; // Pin  7 of L293
 const int right2  = 30;  // Pin  2 of L293
+
+//Mech Sensor 
+const int mechRight = 35;
+const int mechLeft = 34;
+
 #define rightEnable A15
 
 //Left Ultrasonic Sensor
@@ -21,8 +27,13 @@ const int right2  = 30;  // Pin  2 of L293
 #define FrontEchoPin 10
 #define FrontTrigPin 11
 
+// IR Reader
+#include <IRremote.h>
+IRrecv irrecv(A4); 
+decode_results results;
+
 int max_speed = 255;
-int reduced = 220;
+int reduced = 255;
 
 long left_duration; // variable for the left duration of sound wave travel
 int left_old_distance; // variable for the left distance measurement
@@ -46,75 +57,148 @@ void setup() {
   pinMode(RightEchoPin, INPUT); // Sets the echoPin as an INPUT
   pinMode(FrontTrigPin, OUTPUT); // Sets the trigPin as an OUTPUT
   pinMode(FrontEchoPin, INPUT); // Sets the echoPin as an INPUT
+  pinMode(mechRight, INPUT);
+  pinMode(mechLeft, INPUT);
   Serial.begin(9600);
+  irrecv.enableIRIn();
 
 }
 
 const int speedFactor = 0.8;
-  int safe_dist = 30;
+  int safe_dist = 40;
+boolean canDrive = false;
 
 void loop() {
-  // put your main code here, to run repeatedly:
-  //  moveForward();
-  int left_distance = leftUltra();
-  int right_distance = rightUltra();
-  int front_distance = frontUltra();
-  if(left_distance < safe_dist){
-    Serial.println("left blocked");
-    Serial.println(left_distance);
-    }
-    if(right_distance < safe_dist){
-    Serial.println("right blocked");
-    Serial.println(right_distance);
-    }
-    if(front_distance < safe_dist){
-    Serial.println("front blocked");
-    Serial.println(front_distance);
-    }
- 
 
-  
-  if (front_distance >= safe_dist && left_distance >= safe_dist && right_distance >= safe_dist) {
-    moveForward();
-  }
-//  if (left_distance < safe_dist && right_distance < safe_dist && front_distance < safe_dist) {
-//    moveBack();
-//  }
-//  if (left_distance < safe_dist && right_distance < safe_dist) {
-//    moveBack();
-//  }
-  if (front_distance < safe_dist) {
-//       digitalWrite(left1, LOW);
-//  digitalWrite(left2, LOW);
-//  digitalWrite(right1, LOW);
-//  digitalWrite(right2, LOW);
-//      delay(700);
-    moveBack();
-    delay(5000*speedFactor);
-    if(left_distance > right_distance){
-      moveLeft();
+  // Read IR Sensor
+  if (irrecv.decode(&results)){     
+  int value = results.value;     
+  Serial.println(value);      
+         switch(value){     
+           case 6375: //Keypad button "up"     
+           //drive forward     
+           moveForward();
+           delay(500);
+           stopMoving();        
+           }     
+         switch(value){     
+           case 19125: //Keypad button "down"          
+           moveBack();
+           delay(500);
+           stopMoving(); 
+           }     
+           switch(value){     
+           case 4335: //Keypad button "left"          
+           moveLeft();
+           delay(100);
+           stopMoving(); 
+           }     
+           switch(value){     
+           case 23205: //Keypad button "right"       
+           moveRight();
+           delay(100);
+           stopMoving();
+           }
+           switch(value){ //Keypad button "OK"      
+           case 14535:
+           canDrive = !canDrive;
+           break; 
+           }     
+         irrecv.resume();      
+     } else {   
+    // Motion portion of the code
+    if(canDrive){
+      driveMain();
       } else {
-      moveRight(); 
+      stopMoving();  
       }
-    delay(500*speedFactor);
-    while (frontUltra() < safe_dist + 20) {
-      
-      delay(100*speedFactor);
+}
+
+}
+
+void driveMain(){
+  if(digitalRead(mechRight) == HIGH){
+      Serial.println("Mech Right Triggered");
+      moveBack();
+      delay(500);
+      moveLeft();
+      delay(500);
+      }
+      if(digitalRead(mechLeft) == HIGH){
+      Serial.println("Mech Left Triggered");
+      moveBack();
+      delay(500);
+      moveRight ();
+      delay(500);
+      }
+    // put your main code here, to run repeatedly:
+    //  moveForward();
+    int left_distance = leftUltra();
+    int right_distance = rightUltra();
+    int front_distance = frontUltra();
+    if(left_distance < safe_dist){
+      Serial.print("left blocked, distance is:");
+      Serial.println(left_distance);
+      }
+      if(right_distance < safe_dist){
+      Serial.print("right blocked, distance is:");
+      Serial.println(right_distance);
+      }
+      if(front_distance < safe_dist){
+      Serial.print("front blocked, distance is:");
+      Serial.println(front_distance);
+      }
+   
+  
+    
+    if (front_distance >= safe_dist && left_distance >= safe_dist && right_distance >= safe_dist) {
+      moveForward();
     }
+     else if (front_distance < safe_dist || left_distance < 25 && right_distance < 25) {
+      moveBack();
+      delay(1000);
+      if(left_distance > right_distance){
+        moveLeft();
+        } else {
+        moveRight(); 
+        }
+      delay(500);
+      int count = 0;
+      boolean flag = true;
+      while (frontUltra() < safe_dist - 10 && flag) {
+        Serial.println("keep turninggggg");
+        delay(100);
+        if(count > 40){
+          flag = false;
+          } else {
+           count++; 
+           }
+      }
   }
-  if (left_distance < 25) {
+   else if (left_distance < 25) {
 //    Serial.println("here1");
 //    Serial.println(left_distance);
     moveRight();
   }
-  if (right_distance < 25) {
+  else if (right_distance < 25) {
 //    Serial.println("here2");
 //    Serial.println(right_distance);
     moveLeft();
   }
+     
 }
 
+void stopMoving() {
+  analogWrite(leftEnable, 0);
+  analogWrite(rightEnable, 0);
+  digitalWrite(left1, LOW);
+  digitalWrite(left2, LOW);
+  digitalWrite(right1, LOW);
+  digitalWrite(right2, LOW);
+  }
+
 void moveRight() {
+  Serial.println("turning right");
   analogWrite(leftEnable, max_speed);
   analogWrite(rightEnable, reduced);
   digitalWrite(left1, LOW);
@@ -124,6 +208,7 @@ void moveRight() {
 }
 
 void moveLeft() {
+  Serial.println("turning left");
   analogWrite(leftEnable, max_speed);
   analogWrite(rightEnable, reduced);
   digitalWrite(left1, HIGH);
@@ -134,6 +219,7 @@ void moveLeft() {
 }
 
 void moveForward() {
+  Serial.println("moving forward");
   analogWrite(leftEnable, max_speed);
   analogWrite(rightEnable, reduced);
   digitalWrite(left1, HIGH);
